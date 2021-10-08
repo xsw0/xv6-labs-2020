@@ -121,6 +121,17 @@ found:
     return 0;
   }
 
+  p->kernel_pagetable = proc_kvminit();
+  if(p->kernel_pagetable == 0){
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+
+  uint64 va = KSTACK((int) (p - proc));
+  char *pa = (char *) kvmpa(va);
+  proc_kvmmap(p->kernel_pagetable, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+
   // Set up new context to start executing at forkret,
   // which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
@@ -142,6 +153,11 @@ freeproc(struct proc *p)
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
+  
+  if(p->kernel_pagetable)
+    freewalk_without_physical(p->kernel_pagetable);
+  p->kernel_pagetable = 0;
+  
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
@@ -473,6 +489,10 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        w_satp(MAKE_SATP(p->kernel_pagetable));
+        sfence_vma();
+
         swtch(&c->context, &p->context);
 
         // Process is done running for now.
@@ -486,6 +506,10 @@ scheduler(void)
 #if !defined (LAB_FS)
     if(found == 0) {
       intr_on();
+
+      w_satp(MAKE_SATP(kernel_pagetable));
+      sfence_vma();
+
       asm volatile("wfi");
     }
 #else
