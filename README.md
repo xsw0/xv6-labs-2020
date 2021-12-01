@@ -7,3 +7,4 @@
 [pgtbl](https://github.com/xsw0/xv6-labs-2020/tree/pgtbl)  
 [traps](https://github.com/xsw0/xv6-labs-2020/tree/traps)  
 [lazy](https://github.com/xsw0/xv6-labs-2020/tree/lazy)  
+[cow](https://github.com/xsw0/xv6-labs-2020/tree/cow)  
